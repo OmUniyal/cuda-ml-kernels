@@ -29,7 +29,6 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "numpy",
-        "cupy-cuda13x>=13.6.0",
         "numba",
         "scikit-learn",
         "matplotlib",

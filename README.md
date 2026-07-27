@@ -15,10 +15,10 @@ This project implements fundamental ML algorithms with custom CUDA kernels, benc
 
 ## Tech Stack
 
-- **CuPy** — CUDA arrays with NumPy-like API
 - **Numba CUDA** — Python-native CUDA kernel writing
-- **PyTorch** — Baseline comparisons and dataset loading
 - **scikit-learn** — CPU baseline implementations
+- **matplotlib** — Visualization and benchmarking
+- **pandas** — Data handling
 - **pytest** — Unit testing
 - **GitHub Actions** — CI/CD
 

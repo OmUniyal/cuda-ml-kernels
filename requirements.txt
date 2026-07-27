@@ -1,5 +1,4 @@
 numpy>=1.21.0
-cupy-cuda13x>=13.6.0
 numba>=0.60.0
 scikit-learn>=1.0.0
 matplotlib>=3.5.0
