@@ -1,87 +1,101 @@
 """
 GPU-accelerated K-Means operations using PyTorch.
+Optimized to minimize CPU-GPU transfers.
 """
 
 import torch
 import numpy as np
 
 
-def compute_distances_gpu(data, centroids):
+class KMeansGPU:
     """
-    Compute squared Euclidean distances between all points and centroids on GPU.
-    
-    Parameters:
-    -----------
-    data : torch.Tensor, shape (n_samples, n_features) — on GPU
-    centroids : torch.Tensor, shape (n_clusters, n_features) — on GPU
-    
-    Returns:
-    --------
-    distances : torch.Tensor, shape (n_samples, n_clusters) — on GPU
-    labels : torch.Tensor, shape (n_samples,) — on GPU
+    GPU-optimized K-Means that keeps data on GPU across iterations.
     """
-    # torch.cdist computes pairwise distances efficiently on GPU
-    distances = torch.cdist(data, centroids, p=2)  # p=2 = Euclidean
-    distances = distances ** 2  # squared Euclidean
     
-    # Assign each point to nearest centroid
-    labels = torch.argmin(distances, dim=1)
+    def __init__(self, n_clusters=8, max_iter=300, tol=1e-4, random_state=None, verbose=False):
+        self.n_clusters = n_clusters
+        self.max_iter = max_iter
+        self.tol = tol
+        self.random_state = random_state
+        self.verbose = verbose
+        
+        self.centroids = None
+        self.labels = None
+        self.inertia = None
+        self.n_iter = 0
     
-    return distances, labels
-
-
-def update_centroids_gpu(data, labels, n_clusters):
-    """
-    Compute new centroids as mean of assigned points on GPU.
+    def fit(self, X_np):
+        """
+        Fit K-Means to data.
+        
+        Parameters:
+        -----------
+        X_np : numpy array, shape (n_samples, n_features)
+        """
+        # Move data to GPU ONCE and keep it there
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        X = torch.from_numpy(X_np).to(device)
+        n_samples, n_features = X.shape
+        
+        # Initialize centroids on GPU
+        rng = np.random.RandomState(self.random_state)
+        indices = rng.choice(n_samples, self.n_clusters, replace=False)
+        centroids = X[indices].clone()
+        
+        prev_inertia = float('inf')
+        
+        for i in range(self.max_iter):
+            # E-step: compute distances and assign labels (all on GPU)
+            distances = torch.cdist(X, centroids, p=2) ** 2
+            labels = torch.argmin(distances, dim=1)
+            
+            # Compute inertia on GPU
+            inertia = torch.sum(torch.min(distances, dim=1)[0]).item()
+            
+            if self.verbose and i % 10 == 0:
+                print(f"Iteration {i}: inertia = {inertia:.4f}")
+            
+            # Check convergence
+            if abs(prev_inertia - inertia) < self.tol:
+                if self.verbose:
+                    print(f"Converged at iteration {i}")
+                break
+            
+            prev_inertia = inertia
+            
+            # M-step: recompute centroids (vectorized on GPU)
+            new_centroids = torch.zeros_like(centroids)
+            counts = torch.zeros(self.n_clusters, device=device, dtype=torch.float64)
+            
+            for c in range(self.n_clusters):
+                mask = (labels == c)
+                count = mask.sum().item()
+                if count > 0:
+                    new_centroids[c] = X[mask].mean(dim=0)
+                else:
+                    # Reinitialize empty cluster
+                    random_idx = torch.randint(0, n_samples, (1,), device=device)
+                    new_centroids[c] = X[random_idx].squeeze()
+            
+            centroids = new_centroids
+            self.n_iter = i + 1
+        
+        # Copy results back to CPU only at the end
+        self.centroids = centroids.cpu().numpy()
+        self.labels = labels.cpu().numpy()
+        self.inertia = inertia
+        
+        return self
     
-    Parameters:
-    -----------
-    data : torch.Tensor, shape (n_samples, n_features) — on GPU
-    labels : torch.Tensor, shape (n_samples,) — on GPU
-    n_clusters : int
-    
-    Returns:
-    --------
-    centroids : torch.Tensor, shape (n_clusters, n_features) — on GPU
-    """
-    n_features = data.shape[1]
-    centroids = torch.zeros((n_clusters, n_features), device=data.device, dtype=data.dtype)
-    
-    for c in range(n_clusters):
-        mask = (labels == c)
-        if mask.sum() > 0:
-            centroids[c] = data[mask].mean(dim=0)
-        else:
-            # Reinitialize empty cluster to random point
-            random_idx = torch.randint(0, len(data), (1,), device=data.device)
-            centroids[c] = data[random_idx].squeeze()
-    
-    return centroids
-
-
-def launch_distance_kernel(data_np, centroids_np):
-    """
-    Helper: numpy in, numpy out. Handles GPU transfer internally.
-    """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    data = torch.from_numpy(data_np).to(device)
-    centroids = torch.from_numpy(centroids_np).to(device)
-    
-    distances, labels = compute_distances_gpu(data, centroids)
-    
-    return labels.cpu().numpy(), distances.cpu().numpy()
-
-
-def launch_centroid_update_kernel(data_np, labels_np, n_clusters, n_features):
-    """
-    Helper: numpy in, numpy out. Handles GPU transfer internally.
-    """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    data = torch.from_numpy(data_np).to(device)
-    labels = torch.from_numpy(labels_np).to(device)
-    
-    centroids = update_centroids_gpu(data, labels, n_clusters)
-    
-    return centroids.cpu().numpy()
+    def predict(self, X_np):
+        """
+        Predict closest cluster for each sample.
+        """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        X = torch.from_numpy(X_np).to(device)
+        centroids = torch.from_numpy(self.centroids).to(device)
+        
+        distances = torch.cdist(X, centroids, p=2) ** 2
+        labels = torch.argmin(distances, dim=1)
+        
+        return labels.cpu().numpy()
