@@ -29,7 +29,7 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "numpy",
-        "numba",
+        "torch",
         "scikit-learn",
         "matplotlib",
         "pandas",
@@ -40,10 +40,6 @@ setup(
             "pytest-cov",
             "black",
             "flake8",
-        ],
-        "torch": [
-            "torch",
-            "torchvision",
         ],
     },
 )

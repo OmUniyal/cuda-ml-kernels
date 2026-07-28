@@ -15,7 +15,7 @@ This project implements fundamental ML algorithms with custom CUDA kernels, benc
 
 ## Tech Stack
 
-- **Numba CUDA** — Python-native CUDA kernel writing
+- **PyTorch** — GPU-accelerated tensor operations and custom CUDA kernels
 - **scikit-learn** — CPU baseline implementations
 - **matplotlib** — Visualization and benchmarking
 - **pandas** — Data handling
@@ -33,7 +33,7 @@ cd cuda-ml-kernels
 python -m venv .venv
 
 # Activate (Windows)
-venv\Scripts\activate
+.venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
