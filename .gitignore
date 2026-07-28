@@ -28,6 +28,7 @@ ENV/
 env.bak/
 venv.bak/
 .venv/
+.venv-wsl/
 
 # IDE
 .vscode/
