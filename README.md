@@ -10,8 +10,8 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 
 ### Core Framework
 - [x] **Modular architecture** — algorithms separated from GPU kernels
-- [ ] **Universal data loader** — CSV, NumPy arrays, images, text
-- [ ] **Auto-preprocessing pipeline** — scaling, encoding, dimensionality reduction
+- [x] **Universal data loader** — CSV, NumPy arrays, images, text
+- [x] **Auto-preprocessing pipeline** — scaling, encoding, dimensionality reduction
 - [ ] **Plugin system** — users can register custom algorithms
 
 ### Algorithms
@@ -28,7 +28,7 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 - [ ] **Memory optimization** — chunked processing for large datasets
 
 ### Evaluation & Visualization
-- [ ] **Clustering metrics** — silhouette score, ARI, NMI, inertia
+- [x] **Clustering metrics** — silhouette score, ARI, NMI, inertia
 - [ ] **Elbow plot** — optimal k finder
 - [ ] **Cluster scatter plots** — 2D/3D visualization
 - [ ] **Benchmark charts** — performance comparison graphs
