@@ -29,14 +29,14 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 
 ### Evaluation & Visualization
 - [x] **Clustering metrics** — silhouette score, ARI, NMI, inertia
-- [ ] **Elbow plot** — optimal k finder
-- [ ] **Cluster scatter plots** — 2D/3D visualization
+- [x] **Elbow plot** — optimal k finder
+- [x] **Cluster scatter plots** — 2D/3D visualization
 - [ ] **Benchmark charts** — performance comparison graphs
 
 ### User Experience
 - [x] **scikit-learn compatible API** — familiar `fit()`, `predict()` interface
 - [x] **Unit tests** — validated against scikit-learn
-- [ ] **Web UI** — Gradio-based interface, no code required
+- [x] **Web UI** — Streamlit interface
 - [ ] **PyPI package** — `pip install cuda-ml-kernels`
 - [ ] **Jupyter notebook examples** — interactive tutorials
 
