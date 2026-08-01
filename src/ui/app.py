@@ -29,6 +29,14 @@ st.title("🚀 CUDA ML Kernels")
 st.markdown("GPU-accelerated clustering with PyTorch")
 
 
+# Initialize session state
+if 'data_loaded' not in st.session_state:
+    st.session_state.data_loaded = False
+    st.session_state.X = None
+    st.session_state.y = None
+    st.session_state.df_preview = None
+
+
 # Sidebar
 with st.sidebar:
     st.header("Settings")
@@ -39,33 +47,103 @@ with st.sidebar:
         ["Upload CSV", "Upload NPY", "Generate Synthetic"]
     )
     
-    # Algorithm
-    algorithm = st.selectbox(
-        "Algorithm",
-        ["K-Means"]
-    )
+    # CSV Upload
+    if data_source == "Upload CSV":
+        uploaded_file = st.file_uploader("Choose CSV file", type=['csv'])
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file)
+            st.session_state.df_preview = df
+            
+            st.subheader("Column Selection")
+            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            
+            if len(numeric_cols) == 0:
+                st.error("No numeric columns found!")
+                st.stop()
+            
+            feature_cols = st.multiselect(
+                "Feature columns",
+                numeric_cols,
+                default=numeric_cols
+            )
+            
+            target_col = st.selectbox(
+                "Target column (optional)",
+                ["None"] + df.columns.tolist()
+            )
+            
+            if st.button("Load Data"):
+                if len(feature_cols) == 0:
+                    st.error("Select at least one feature column!")
+                    st.stop()
+                
+                X = df[feature_cols].values
+                y = None
+                if target_col != "None":
+                    y = df[target_col].values
+                
+                st.session_state.X = X
+                st.session_state.y = y
+                st.session_state.data_loaded = True
+                st.success(f"Loaded: {X.shape[0]} samples, {X.shape[1]} features")
     
-    # Parameters
-    n_clusters = st.slider("Number of Clusters", 2, 20, 5)
-    scale = st.selectbox("Scaling", ["standard", "minmax", "none"])
+    # NPY Upload
+    elif data_source == "Upload NPY":
+        uploaded_file = st.file_uploader("Choose NPY/NPZ file", type=['npy', 'npz'])
+        if uploaded_file is not None:
+            # Save temporarily
+            temp_path = "/tmp/uploaded_data.npy"
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.getvalue())
+            
+            try:
+                X, y = DataLoader.load(temp_path)
+                st.session_state.X = X
+                st.session_state.y = y
+                st.session_state.data_loaded = True
+                st.success(f"Loaded: {X.shape[0]} samples, {X.shape[1]} features")
+            except Exception as e:
+                st.error(f"Error loading file: {e}")
+            
+            # Cleanup
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
     
-    run_button = st.button("🚀 Run Clustering", type="primary")
+    # Synthetic Data
+    elif data_source == "Generate Synthetic":
+        n_samples = st.slider("Samples", 100, 20000, 5000)
+        n_features = st.slider("Features", 2, 50, 10)
+        
+        if st.button("Generate Data"):
+            X, y = make_blobs(
+                n_samples=n_samples,
+                n_features=n_features,
+                centers=5,
+                random_state=42
+            )
+            st.session_state.X = X
+            st.session_state.y = y
+            st.session_state.data_loaded = True
+            st.success(f"Generated: {X.shape[0]} samples, {X.shape[1]} features")
+    
+    # Only show algorithm settings if data is loaded
+    if st.session_state.data_loaded:
+        st.header("Algorithm")
+        algorithm = st.selectbox("Algorithm", ["K-Means"])
+        n_clusters = st.slider("Number of Clusters", 2, 20, 5)
+        scale = st.selectbox("Scaling", ["standard", "minmax", "none"])
+        run_button = st.button("🚀 Run Clustering", type="primary")
 
 
 # Main area
-if run_button:
-    with st.spinner("Loading data..."):
-        if data_source == "Generate Synthetic":
-            X, true_labels = make_blobs(
-                n_samples=5000,
-                n_features=10,
-                centers=n_clusters,
-                random_state=42
-            )
-            st.success(f"Generated synthetic data: {X.shape}")
-        else:
-            st.info("Upload feature coming soon!")
-            st.stop()
+if st.session_state.data_loaded and st.session_state.df_preview is not None:
+    with st.expander("Data Preview"):
+        st.dataframe(st.session_state.df_preview.head(20))
+        st.write(f"Shape: {st.session_state.df_preview.shape}")
+
+if st.session_state.data_loaded and 'run_button' in locals() and run_button:
+    X = st.session_state.X
+    y_true = st.session_state.y
     
     with st.spinner("Preprocessing..."):
         prep = Preprocessor(scale=scale)
@@ -83,21 +161,24 @@ if run_button:
     with col1:
         st.subheader("Cluster Visualization (PCA)")
         
-        # Reduce to 2D for plotting
-        pca = PCA(n_components=2)
-        X_2d = pca.fit_transform(X_processed)
+        n_components_viz = min(2, X_processed.shape[1])
+        if X_processed.shape[1] > 2:
+            pca = PCA(n_components=2)
+            X_2d = pca.fit_transform(X_processed)
+        else:
+            X_2d = X_processed
         
         fig, ax = plt.subplots(figsize=(8, 6))
         scatter = ax.scatter(
             X_2d[:, 0],
-            X_2d[:, 1],
+            X_2d[:, 1] if X_2d.shape[1] > 1 else np.zeros(len(X_2d)),
             c=model.labels,
             cmap='tab10',
             alpha=0.6
         )
-        ax.set_xlabel("PC1")
-        ax.set_ylabel("PC2")
-        ax.set_title("Clusters (PCA 2D projection)")
+        ax.set_xlabel("PC1" if X_processed.shape[1] > 2 else "Feature 1")
+        ax.set_ylabel("PC2" if X_processed.shape[1] > 2 else "Feature 2")
+        ax.set_title("Clusters (2D projection)")
         plt.colorbar(scatter, ax=ax)
         st.pyplot(fig)
     
@@ -108,7 +189,7 @@ if run_button:
             X_processed,
             model.labels,
             centroids=model.centroids,
-            true_labels=true_labels if data_source == "Generate Synthetic" else None
+            true_labels=y_true
         )
         
         metrics_df = pd.DataFrame([
@@ -123,7 +204,8 @@ if run_button:
     # Elbow plot
     st.subheader("Elbow Plot (Find Optimal k)")
     
-    k_range = range(2, min(16, len(X) // 10))
+    max_k = min(16, len(X) // 10)
+    k_range = range(2, max_k)
     inertias = []
     
     progress_bar = st.progress(0)
