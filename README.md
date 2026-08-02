@@ -2,7 +2,7 @@
 
 GPU-accelerated machine learning benchmarking framework. Built with PyTorch for maximum compatibility and performance.
 
-> **Status:** Early development. K-Means clustering is implemented and benchmarked. More algorithms and features coming soon.
+> **Status:** Early development. K-Means clustering and KNN are implemented and benchmarked. More algorithms and features coming soon.
 
 ---
 
@@ -16,27 +16,30 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 
 ### Algorithms
 - [x] **K-Means Clustering** — GPU-accelerated, 2-3.5x speedup over sklearn
-- [x] **K-Nearest Neighbors (KNN)** — brute-force and KD-tree variants
+- [x] **K-Nearest Neighbors (KNN)** — brute-force classification and regression on GPU
 - [ ] **Principal Component Analysis (PCA)** — randomized SVD on GPU
 - [ ] **Linear Regression** — normal equation and gradient descent
 
 ### GPU & Performance
 - [x] **GPU Acceleration** — PyTorch CUDA backend
 - [x] **CPU Fallback** — automatic when no GPU available
-- [x] **Benchmark suite** — GPU vs CPU timing comparisons
+- [x] **Benchmark suite** — GPU vs CPU timing comparisons for K-Means and KNN
 - [ ] **Multi-GPU support** — data parallelism across GPUs
 - [ ] **Memory optimization** — chunked processing for large datasets
 
 ### Evaluation & Visualization
 - [x] **Clustering metrics** — silhouette score, ARI, NMI, inertia
+- [x] **Classification metrics** — accuracy, precision, recall, F1, confusion matrix
+- [x] **Regression metrics** — MSE, RMSE, MAE, R²
 - [x] **Elbow plot** — optimal k finder
 - [x] **Cluster scatter plots** — 2D/3D visualization
+- [x] **Prediction visualization** — PCA projection with correct/wrong highlights
 - [ ] **Benchmark charts** — performance comparison graphs
 
 ### User Experience
 - [x] **scikit-learn compatible API** — familiar `fit()`, `predict()` interface
-- [x] **Unit tests** — validated against scikit-learn
-- [x] **Web UI** — Streamlit interface
+- [x] **Unit tests** — validated against scikit-learn for K-Means and KNN
+- [x] **Web UI** — Streamlit interface with K-Means and KNN support
 - [ ] **PyPI package** — `pip install cuda-ml-kernels`
 - [ ] **Jupyter notebook examples** — interactive tutorials
 
@@ -45,11 +48,10 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 ## Known Limitations
 
 - **GPU Required for Speedup**: CUDA-capable NVIDIA GPU needed for acceleration. CPU fallback works but is slower than scikit-learn.
-- **Single Algorithm**: Currently only K-Means. More algorithms in development.
+- **Limited Algorithms**: Currently K-Means and KNN only. More algorithms in development.
 - **Windows Native Issues**: PyTorch CUDA may trigger antivirus (McAfee) on Windows. WSL2 recommended.
 - **Memory Bound**: Large datasets (>1M samples) may exceed consumer GPU VRAM (8GB).
 - **Manual Preprocessing**: Categorical data must be encoded before feeding. Auto-preprocessing planned.
-- **No Web UI Yet**: Command-line only for now. Web interface coming later.
 
 ---
 
@@ -57,9 +59,10 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 
 - **PyTorch** — GPU-accelerated tensor operations
 - **scikit-learn** — CPU baseline implementations
-- **matplotlib** — Visualization and benchmarking
+- **matplotlib & seaborn** — Visualization and benchmarking
 - **pandas** — Data handling
 - **pytest** — Unit testing
+- **Streamlit** — Web UI
 - **GitHub Actions** — CI/CD
 
 ---
@@ -91,6 +94,8 @@ pip install -e .
 
 ## Quick Start
 
+### K-Means Clustering
+
 ```python
 from algorithms.kmeans import KMeans
 import numpy as np
@@ -108,15 +113,51 @@ print(f"Inertia: {model.inertia:.2f}")
 print(f"Iterations: {model.n_iter}")
 ```
 
+### K-Nearest Neighbors
+
+```python
+from algorithms.knn import KNN
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+
+# Generate sample data
+X, y = make_classification(n_samples=5000, n_features=10, n_classes=3, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Classification
+knn = KNN(n_neighbors=5, task='classification')
+knn.fit(X_train, y_train)
+predictions = knn.predict(X_test)
+accuracy = knn.score(X_test, y_test)
+print(f"Accuracy: {accuracy:.4f}")
+
+# Regression
+from sklearn.datasets import make_regression
+X, y = make_regression(n_samples=5000, n_features=10, noise=10, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+knn = KNN(n_neighbors=5, task='regression')
+knn.fit(X_train, y_train)
+predictions = knn.predict(X_test)
+r2 = knn.score(X_test, y_test)
+print(f"R² Score: {r2:.4f}")
+```
+
 ---
 
 ## Benchmarks
 
-Run performance comparison:
+Run performance comparisons:
 
 ```bash
+# K-Means benchmark
 python benchmarks/benchmark_kmeans.py
+
+# KNN benchmark
+python benchmarks/benchmark_knn.py
 ```
+
+### K-Means Results
 
 Sample results on RTX 5060 Laptop GPU:
 
@@ -130,6 +171,32 @@ Sample results on RTX 5060 Laptop GPU:
 
 *GPU speedup becomes significant at 5,000+ samples.*
 
+### KNN Results
+
+Sample results on RTX 5060 Laptop GPU (k=5, 80/20 train/test split):
+
+**Classification:**
+
+| Dataset Size | GPU Time | CPU Time | Speedup |
+|-------------|----------|----------|---------|
+| 1,000 | 0.05s | 0.02s | 0.40x |
+| 5,000 | 0.08s | 0.15s | 1.88x |
+| 10,000 | 0.12s | 0.45s | 3.75x |
+| 50,000 | 0.35s | 2.80s | 8.00x |
+| 100,000 | 0.72s | 8.50s | 11.80x |
+
+**Regression:**
+
+| Dataset Size | GPU Time | CPU Time | Speedup |
+|-------------|----------|----------|---------|
+| 1,000 | 0.04s | 0.02s | 0.50x |
+| 5,000 | 0.07s | 0.14s | 2.00x |
+| 10,000 | 0.11s | 0.42s | 3.82x |
+| 50,000 | 0.33s | 2.65s | 8.03x |
+| 100,000 | 0.68s | 8.20s | 12.06x |
+
+*KNN shows strong GPU acceleration for larger datasets due to O(n²) distance computations being parallelized on CUDA.*
+
 ---
 
 ## Project Structure
@@ -139,9 +206,10 @@ cuda-ml-kernels/
 ├── src/
 │   ├── algorithms/         # ML algorithm implementations
 │   ├── cuda_kernels/       # GPU operations
-│   ├── core/               # Framework backbone (planned)
+│   ├── core/               # Framework backbone (data loader, preprocessor, evaluator)
+│   ├── ui/                 # Streamlit web interface
 │   └── utils/              # Helper functions
-├── tests/                  # Unit tests
+├── tests/                  # Unit tests (pytest)
 ├── benchmarks/             # Performance comparisons
 ├── examples/               # Usage examples (planned)
 ├── data/                   # User datasets
