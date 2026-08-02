@@ -16,7 +16,7 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 
 ### Algorithms
 - [x] **K-Means Clustering** — GPU-accelerated, 2-3.5x speedup over sklearn
-- [ ] **K-Nearest Neighbors (KNN)** — brute-force and KD-tree variants
+- [x] **K-Nearest Neighbors (KNN)** — brute-force and KD-tree variants
 - [ ] **Principal Component Analysis (PCA)** — randomized SVD on GPU
 - [ ] **Linear Regression** — normal equation and gradient descent
 
