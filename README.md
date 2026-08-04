@@ -2,7 +2,7 @@
 
 GPU-accelerated machine learning benchmarking framework. Built with PyTorch for maximum compatibility and performance.
 
-> **Status:** Early development. K-Means clustering and KNN are implemented and benchmarked. More algorithms and features coming soon.
+> **Status:** Early development. K-Means clustering and KNN are implemented. More algorithms and features coming soon.
 
 ---
 
@@ -16,7 +16,7 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 
 ### Algorithms
 - [x] **K-Means Clustering** — GPU-accelerated, 2-3.5x speedup over sklearn
-- [x] **K-Nearest Neighbors (KNN)** — brute-force classification and regression on GPU
+- [x] **K-Nearest Neighbors (KNN)** — classification and regression with GPU/CPU auto-dispatch
 - [ ] **Principal Component Analysis (PCA)** — randomized SVD on GPU
 - [ ] **Linear Regression** — normal equation and gradient descent
 
@@ -173,29 +173,29 @@ Sample results on RTX 5060 Laptop GPU:
 
 ### KNN Results
 
-Sample results on RTX 5060 Laptop GPU (k=5, 80/20 train/test split):
+Sample results on RTX 5060 Laptop GPU:
 
 **Classification:**
 
 | Dataset Size | GPU Time | CPU Time | Speedup |
-|-------------|----------|----------|---------|
-| 1,000 | 0.05s | 0.02s | 0.40x |
-| 5,000 | 0.08s | 0.15s | 1.88x |
-| 10,000 | 0.12s | 0.45s | 3.75x |
-| 50,000 | 0.35s | 2.80s | 8.00x |
-| 100,000 | 0.72s | 8.50s | 11.80x |
+| ------------ | -------- | -------- | ------- |
+| 1,000        | 0.0115s  | 0.0037s  | 0.32x   |
+| 5,000        | 0.0389s  | 0.0271s  | 0.70x   |
+| 10,000       | 0.0905s  | 0.0827s  | 0.91x   |
+| 50,000       | 0.7056s  | 0.5452s  | 0.77x   |
+| 100,000      | 1.7684s  | 1.6063s  | 0.91x   |
 
 **Regression:**
 
 | Dataset Size | GPU Time | CPU Time | Speedup |
-|-------------|----------|----------|---------|
-| 1,000 | 0.04s | 0.02s | 0.50x |
-| 5,000 | 0.07s | 0.14s | 2.00x |
-| 10,000 | 0.11s | 0.42s | 3.82x |
-| 50,000 | 0.33s | 2.65s | 8.03x |
-| 100,000 | 0.68s | 8.20s | 12.06x |
+| ------------ | -------- | -------- | ------- |
+| 1,000        | 0.0042s  | 0.0058s  | 1.37x   |
+| 5,000        | 0.0784s  | 0.0532s  | 0.68x   |
+| 10,000       | 0.2218s  | 0.2204s  | 0.99x   |
+| 50,000       | 2.3266s  | 2.4417s  | 1.05x   |
+| 100,000      | 7.7307s  | 8.3121s  | 1.08x   |
 
-*KNN shows strong GPU acceleration for larger datasets due to O(n²) distance computations being parallelized on CUDA.*
+*KNN is memory-bandwidth bound rather than compute bound. GPU acceleration is modest on consumer laptop GPUs due to PCIe transfer overhead. Regression sees slight benefits at 50K+ samples; classification performs comparably to CPU.*
 
 ---
 
