@@ -2,7 +2,7 @@
 
 GPU-accelerated machine learning benchmarking framework. Built with PyTorch for maximum compatibility and performance.
 
-> **Status:** Early development. K-Means clustering and KNN are implemented. More algorithms and features coming soon.
+> **Status:** Early development. K-Means clustering, KNN and PCA are implemented. More algorithms and features coming soon.
 
 ---
 
@@ -17,13 +17,13 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 ### Algorithms
 - [x] **K-Means Clustering** — GPU-accelerated, 2-3.5x speedup over sklearn
 - [x] **K-Nearest Neighbors (KNN)** — classification and regression with GPU/CPU auto-dispatch
-- [ ] **Principal Component Analysis (PCA)** — randomized SVD on GPU
+- [x] **Principal Component Analysis (PCA)** — randomized SVD on GPU, 1.5–6x speedup
 - [ ] **Linear Regression** — normal equation and gradient descent
 
 ### GPU & Performance
 - [x] **GPU Acceleration** — PyTorch CUDA backend
 - [x] **CPU Fallback** — automatic when no GPU available
-- [x] **Benchmark suite** — GPU vs CPU timing comparisons for K-Means and KNN
+- [x] **Benchmark suite** — GPU vs CPU timing comparisons for K-Means, KNN, and PCA
 - [ ] **Multi-GPU support** — data parallelism across GPUs
 - [ ] **Memory optimization** — chunked processing for large datasets
 
@@ -39,7 +39,7 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 ### User Experience
 - [x] **scikit-learn compatible API** — familiar `fit()`, `predict()` interface
 - [x] **Unit tests** — validated against scikit-learn for K-Means and KNN
-- [x] **Web UI** — Streamlit interface with K-Means and KNN support
+- [x] **Web UI** — Streamlit interface with K-Means, KNN, and PCA support
 - [ ] **PyPI package** — `pip install cuda-ml-kernels`
 - [ ] **Jupyter notebook examples** — interactive tutorials
 
@@ -48,7 +48,7 @@ GPU-accelerated machine learning benchmarking framework. Built with PyTorch for 
 ## Known Limitations
 
 - **GPU Required for Speedup**: CUDA-capable NVIDIA GPU needed for acceleration. CPU fallback works but is slower than scikit-learn.
-- **Limited Algorithms**: Currently K-Means and KNN only. More algorithms in development.
+- **Limited Algorithms**: Currently K-Means, KNN, and PCA. More algorithms in development.
 - **Windows Native Issues**: PyTorch CUDA may trigger antivirus (McAfee) on Windows. WSL2 recommended.
 - **Memory Bound**: Large datasets (>1M samples) may exceed consumer GPU VRAM (8GB).
 - **Manual Preprocessing**: Categorical data must be encoded before feeding. Auto-preprocessing planned.
@@ -143,6 +143,26 @@ r2 = knn.score(X_test, y_test)
 print(f"R² Score: {r2:.4f}")
 ```
 
+
+### Principal Component Analysis
+
+```python
+from algorithms.pca import PCA
+import numpy as np
+
+# Generate high-dimensional data
+np.random.seed(42)
+X = np.random.randn(10000, 100)
+
+# Fit GPU-accelerated PCA
+pca = PCA(n_components=10, random_state=42)
+X_reduced = pca.fit_transform(X)
+
+print(f"Original shape: {X.shape}")
+print(f"Reduced shape: {X_reduced.shape}")
+print(f"Explained variance ratio: {pca.explained_variance_ratio_[:3]}")
+```
+
 ---
 
 ## Benchmarks
@@ -155,6 +175,9 @@ python benchmarks/benchmark_kmeans.py
 
 # KNN benchmark
 python benchmarks/benchmark_knn.py
+
+# PCA benchmark
+python benchmarks/benchmark_pca.py
 ```
 
 ### K-Means Results
@@ -196,6 +219,27 @@ Sample results on RTX 5060 Laptop GPU:
 | 100,000      | 7.7307s  | 8.3121s  | 1.08x   |
 
 *KNN is memory-bandwidth bound rather than compute bound. GPU acceleration is modest on consumer laptop GPUs due to PCIe transfer overhead. Regression sees slight benefits at 50K+ samples; classification performs comparably to CPU.*
+
+
+### PCA Results
+
+Run the benchmark on your machine:
+
+```bash
+python benchmarks/benchmark_pca.py
+```
+
+Results on RTX 5060 Laptop GPU (10 components, 100 features):
+
+| Dataset Size | GPU Time | CPU Time | Speedup |
+|-------------|----------|----------|---------|
+| 1,000 | 0.0076s | 0.0060s | 0.80x |
+| 5,000 | 0.0085s | 0.0124s | 1.46x |
+| 10,000 | 0.0134s | 0.0858s | 6.42x |
+| 50,000 | 0.0676s | 0.1852s | 2.74x |
+| 100,000 | 0.1496s | 0.3623s | 2.42x |
+
+*PCA shows strong GPU acceleration for medium-to-large datasets due to compute-intensive matrix operations. Speedup becomes significant at 5,000+ samples.*
 
 ---
 
